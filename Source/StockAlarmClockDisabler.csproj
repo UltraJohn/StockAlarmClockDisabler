@@ -61,4 +61,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>if $(ConfigurationName) == Release (	
+copy /Y "$(TargetDir)$(ProjectName).dll" "$(SolutionDir)..\GameData\$(ProjectName)\Plugins\$(ProjectName).dll"
+copy /Y "$(ProjectDir)..\README.md" "$(SolutionDir)..\GameData\$(ProjectName)\README.md"
+copy /Y "$(ProjectDir)..\LICENSE.txt" "$(SolutionDir)..\GameData\$(ProjectName)\LICENSE.txt"
+)
+
+</PostBuildEvent>
+  </PropertyGroup>
 </Project>
