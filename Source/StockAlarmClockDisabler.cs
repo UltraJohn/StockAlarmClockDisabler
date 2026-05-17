@@ -53,16 +53,12 @@ namespace StockAlarmClockDisabler
 			}
 		}
 
-		[HarmonyPatch(typeof(AlarmClockScenario), "OnAwake")]
+		[HarmonyPatch(typeof(AlarmClockScenario), "AddAlarm")]
 		class Patch4
 		{
-			static bool Prefix(ref AlarmClockScenario __instance)
+			static bool Prefix(ref bool __result)
 			{
-				if (AlarmClockScenario.Instance != null)
-				{
-					Destroy(AlarmClockScenario.Instance);
-				}
-				Destroy(__instance);
+				__result = false;
 				return false;
 			}
 		}
