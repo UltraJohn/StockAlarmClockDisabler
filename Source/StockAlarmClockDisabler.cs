@@ -3,6 +3,7 @@ using KSP.UI.Screens;
 using KSP.UI.Screens.Mapview;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -16,11 +17,27 @@ namespace StockAlarmClockDisabler
 	[KSPAddon(KSPAddon.Startup.Instantly, true)]
 	public class StockAlarmClockDisabler : MonoBehaviour
     {
+		static bool setting_replaceStock = true;
 		public void Awake()
 		{
+			LoadSettings();
 			// NOTE: A Harmony patcher should be placed in a run once Startup addon. The patch is kept between scene changes.
 			var harmony = new Harmony("UltraJohn.Mods.StockAlarmClockDisabler");
 			harmony.PatchAll(Assembly.GetExecutingAssembly());
+		}
+
+		void LoadSettings()
+		{
+			ConfigNode node = GameDatabase.Instance.GetConfigNode("StockAlarmClockDisabler/StockAlarmClockDisablerSettings");
+			if (node == null)
+			{
+				Debug.LogError("StockAlarmClockDisabler: Could not load settings. Settings.cfg may be missing.");
+				return;
+			}
+			if (node.HasValue("replaceStockAppLauncher"))
+			{
+				bool.TryParse(node.GetValue("replaceStockAppLauncher"), out setting_replaceStock);
+			}
 		}
 
 		[HarmonyPatch(typeof(MapNode), "Init")]
@@ -52,40 +69,44 @@ namespace StockAlarmClockDisabler
 		{
 			static bool Prefix(ref AlarmClockApp __instance)
 			{
-				Assembly assembly = GetKACAssembly();
-				if (assembly != null)
+				if (setting_replaceStock)
 				{
-					if (__instance != null)
+					Assembly assembly = GetKACAssembly();
+					if (assembly != null)
 					{
-						// Call KerbalAlarmClock.KACToolbarAPI.OverrideStockToolbar:
-						Type type = assembly.GetType("KerbalAlarmClock.KACToolbarAPI");
-						MethodInfo methodinfo_overridestock = type.GetMethod("OverrideStockToolbar", BindingFlags.Public | BindingFlags.Static);
-						methodinfo_overridestock.Invoke(null, new object[]{ true });
+						if (__instance != null)
+						{
+							// Call KerbalAlarmClock.KACToolbarAPI.OverrideStockToolbar:
+							Type type = assembly.GetType("KerbalAlarmClock.KACToolbarAPI");
+							MethodInfo methodinfo_overridestock = type.GetMethod("OverrideStockToolbar", BindingFlags.Public | BindingFlags.Static);
+							methodinfo_overridestock.Invoke(null, new object[] { true });
 
-						// Get the functions for the AppLauncher button:
-						MethodInfo methodinfo_OnHover = type.GetMethod("onAppLaunchHoverOn", BindingFlags.Public | BindingFlags.Static);
-						Callback onHover = (Callback)Delegate.CreateDelegate(typeof(Callback), null, methodinfo_OnHover);
-						__instance.appLauncherButton.onHover = onHover;
+							// Get the functions for the AppLauncher button:
+							MethodInfo methodinfo_OnHover = type.GetMethod("onAppLaunchHoverOn", BindingFlags.Public | BindingFlags.Static);
+							Callback onHover = (Callback)Delegate.CreateDelegate(typeof(Callback), null, methodinfo_OnHover);
+							__instance.appLauncherButton.onHover = onHover;
 
-						MethodInfo methodinfo_OnHoverOff = type.GetMethod("onAppLaunchHoverOff", BindingFlags.Public | BindingFlags.Static);
-						Callback onHoverOff = (Callback)Delegate.CreateDelegate(typeof(Callback), null, methodinfo_OnHoverOff);
-						__instance.appLauncherButton.onHoverOut = onHoverOff;
+							MethodInfo methodinfo_OnHoverOff = type.GetMethod("onAppLaunchHoverOff", BindingFlags.Public | BindingFlags.Static);
+							Callback onHoverOff = (Callback)Delegate.CreateDelegate(typeof(Callback), null, methodinfo_OnHoverOff);
+							__instance.appLauncherButton.onHoverOut = onHoverOff;
 
-						MethodInfo methodinfo_OnToggleOn = type.GetMethod("onAppLaunchToggleOn", BindingFlags.Public | BindingFlags.Static);
-						Callback onToggleOn = (Callback)Delegate.CreateDelegate(typeof(Callback), null, methodinfo_OnToggleOn);
-						__instance.appLauncherButton.onTrue = onToggleOn;
+							MethodInfo methodinfo_OnToggleOn = type.GetMethod("onAppLaunchToggleOn", BindingFlags.Public | BindingFlags.Static);
+							Callback onToggleOn = (Callback)Delegate.CreateDelegate(typeof(Callback), null, methodinfo_OnToggleOn);
+							__instance.appLauncherButton.onTrue = onToggleOn;
 
-						MethodInfo methodinfo_OnToggleOff = type.GetMethod("onAppLaunchToggleOff", BindingFlags.Public | BindingFlags.Static);
-						Callback onToggleOff = (Callback)Delegate.CreateDelegate(typeof(Callback), null, methodinfo_OnToggleOff);
-						__instance.appLauncherButton.onFalse = onToggleOff;
+							MethodInfo methodinfo_OnToggleOff = type.GetMethod("onAppLaunchToggleOff", BindingFlags.Public | BindingFlags.Static);
+							Callback onToggleOff = (Callback)Delegate.CreateDelegate(typeof(Callback), null, methodinfo_OnToggleOff);
+							__instance.appLauncherButton.onFalse = onToggleOff;
 
 
-						__instance.appLauncherButton.onEnable = btnOnEnable;
-						__instance.appLauncherButton.onDisable = btnOnDisable;
-						//__instance.appLauncherButton.SetTexture(Resources.texAppLaunchIcon);
+							__instance.appLauncherButton.onEnable = btnOnEnable;
+							__instance.appLauncherButton.onDisable = btnOnDisable;
+							//__instance.appLauncherButton.SetTexture(Resources.texAppLaunchIcon);
+						}
+						return false;
 					}
-					return false;
 				}
+				
 				if (AlarmClockApp.Instance != null)
 				{
 					Destroy(AlarmClockApp.Instance);
