@@ -102,6 +102,28 @@ namespace StockAlarmClockDisabler
 							__instance.appLauncherButton.onEnable = btnOnEnable;
 							__instance.appLauncherButton.onDisable = btnOnDisable;
 							//__instance.appLauncherButton.SetTexture(Resources.texAppLaunchIcon);
+
+
+							// Check if the button is active, then set stock toolbar button to true, so that it correctly reflects if the window is active or not.
+							Type typeKAC = assembly.GetType("KerbalAlarmClock.KerbalAlarmClock");
+							if (typeKAC != null)
+							{
+								FieldInfo instanceField = typeKAC.GetField("Instance", BindingFlags.Public | BindingFlags.Static);
+								object kacInstance = instanceField?.GetValue(null);
+								
+								if (kacInstance != null)
+								{
+									PropertyInfo windowVisibleProp = typeKAC.GetProperty("WindowVisibleByActiveScene", BindingFlags.Public | BindingFlags.Instance);
+									if (windowVisibleProp != null)
+									{
+										bool isWindowVisible = (bool)windowVisibleProp.GetValue(kacInstance);
+										if(isWindowVisible)
+										{
+											__instance.appLauncherButton.SetTrue();
+										}
+									}
+								}
+							}
 						}
 						return false;
 					}
