@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace StockAlarmClockDisabler
 {
-	[KSPAddon(KSPAddon.Startup.SpaceCentre, false)]
+	[KSPAddon(KSPAddon.Startup.SpaceCentre, true)]
 	public class OptionWindow : MonoBehaviour
 	{
 		public static OptionWindow Instance;
@@ -97,7 +97,6 @@ namespace StockAlarmClockDisabler
 			GUILayout.Label(modeDescriptions[1], descriptionStyle);
 			GUILayout.EndHorizontal();
 
-			// --- EXPLICIT MUTUAL EXCLUSION LOGIC ---
 			// If the user clicked the Stock button when it wasn't already active
 			if (newStockSelected && !isStockSelected)
 			{
@@ -119,6 +118,10 @@ namespace StockAlarmClockDisabler
 			if (GUILayout.Button("Save & Close"))
 			{
 				isVisible = false;
+				if (!StockAlarmClockDisabler.setting_replaceStock)
+				{
+					StockAlarmClockDisabler.SetToolbarMode();
+				}
 			}
 
 			GUILayout.EndVertical();

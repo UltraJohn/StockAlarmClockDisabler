@@ -139,6 +139,22 @@ namespace StockAlarmClockDisabler
 				return false;
 			}
 		}
+
+		public static void SetToolbarMode()
+		{
+			try
+			{
+				Assembly assembly = GetKACAssembly();
+				Type type = assembly.GetType("KerbalAlarmClock.KACToolbarAPI");
+				MethodInfo methodinfo_overridestock = type.GetMethod("OverrideStockToolbar", BindingFlags.Public | BindingFlags.Static);
+				methodinfo_overridestock.Invoke(null, new object[] { false });
+			}catch(Exception ex)
+			{
+				Debug.LogError(ex.Message);
+			}
+			
+		}
+
 		static void btnOnEnable()
 		{
 			Debug.Log("StockAlarmClockDisabler: btnOnEnable testing. If you read this, please report this to the mod author");
