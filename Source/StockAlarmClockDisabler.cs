@@ -1,4 +1,6 @@
-﻿using HarmonyLib;
+﻿using CommNet.Network;
+using HarmonyLib;
+using KSP.IO;
 using KSP.UI.Screens;
 using KSP.UI.Screens.Mapview;
 using System;
@@ -17,7 +19,8 @@ namespace StockAlarmClockDisabler
 	[KSPAddon(KSPAddon.Startup.Instantly, true)]
 	public class StockAlarmClockDisabler : MonoBehaviour
     {
-		static bool setting_replaceStock = true;
+		public static bool FirstRun = false;
+		public static bool setting_replaceStock = true;
 		public void Awake()
 		{
 			LoadSettings();
@@ -28,16 +31,7 @@ namespace StockAlarmClockDisabler
 
 		void LoadSettings()
 		{
-			ConfigNode node = GameDatabase.Instance.GetConfigNode("StockAlarmClockDisabler/StockAlarmClockDisablerSettings");
-			if (node == null)
-			{
-				Debug.LogError("StockAlarmClockDisabler: Could not load settings. Settings.cfg may be missing.");
-				return;
-			}
-			if (node.HasValue("replaceStockAppLauncher"))
-			{
-				bool.TryParse(node.GetValue("replaceStockAppLauncher"), out setting_replaceStock);
-			}
+			SettingsManager.InitializeSettings();
 		}
 
 		[HarmonyPatch(typeof(MapNode), "Init")]
@@ -51,7 +45,7 @@ namespace StockAlarmClockDisabler
 
 		static Assembly GetKACAssembly()
 		{
-			AssemblyLoader.LoadedAssembly list = AssemblyLoader.loadedAssemblies.FirstOrDefault(x => x.name == "KerbalAlarmClock");
+			AssemblyLoader.LoadedAssembly list = AssemblyLoader.loadedAssemblies.FirstOrDefault(x => x.dllName.Contains("KerbalAlarmClock"));
 			if (list != null)
 			{
 				Assembly assembly = list.assembly;
@@ -69,10 +63,10 @@ namespace StockAlarmClockDisabler
 		{
 			static bool Prefix(ref AlarmClockApp __instance)
 			{
-				if (setting_replaceStock)
+				Assembly assembly = GetKACAssembly();
+				if (assembly != null)
 				{
-					Assembly assembly = GetKACAssembly();
-					if (assembly != null)
+					if (setting_replaceStock)
 					{
 						if (__instance != null)
 						{
@@ -127,13 +121,21 @@ namespace StockAlarmClockDisabler
 						}
 						return false;
 					}
+					else
+					{
+						// Call KerbalAlarmClock.KACToolbarAPI.OverrideStockToolbar:
+						Type type = assembly.GetType("KerbalAlarmClock.KACToolbarAPI");
+						MethodInfo methodinfo_overridestock = type.GetMethod("OverrideStockToolbar", BindingFlags.Public | BindingFlags.Static);
+						methodinfo_overridestock.Invoke(null, new object[] { false });
+
+						if (AlarmClockApp.Instance != null)
+						{
+							Destroy(AlarmClockApp.Instance);
+						}
+						Destroy(__instance);
+						return false;
+					}
 				}
-				
-				if (AlarmClockApp.Instance != null)
-				{
-					Destroy(AlarmClockApp.Instance);
-				}
-				Destroy(__instance);
 				return false;
 			}
 		}
